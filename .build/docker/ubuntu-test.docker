@@ -10,7 +10,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04 AS netty-s390x-builder
+
+RUN arch="$(dpkg --print-architecture)" \
+    && mkdir -p /opt/netty-s390x \
+    && if [ "${arch}" != "s390x" ]; then exit 0; fi \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl sudo \
+    && curl -L --fail https://raw.githubusercontent.com/linux-on-ibm-z/scripts/master/netty-tcnative/2.0.70/build_netty.sh -o /tmp/build_netty.sh \
+    && chmod +x /tmp/build_netty.sh \
+    && mkdir -p /tmp/netty-build \
+    && cd /tmp/netty-build \
+    && bash /tmp/build_netty.sh -y -j OpenJDK11 \
+    && cp -f /tmp/netty-build/netty-tcnative/boringssl-static/target/netty-tcnative-boringssl-static-2.0.70.Final-linux-s390_64.jar /opt/netty-s390x/ \
+    && cp -f /tmp/netty-build/netty-tcnative/openssl-classes/target/netty-tcnative-classes-2.0.70.Final.jar /opt/netty-s390x/
+
+FROM ubuntu:22.04
 LABEL org.opencontainers.image.authors="Apache Cassandra <dev@cassandra.apache.org>"
 
 # CONTEXT is expected to be cassandra/.build
@@ -23,7 +38,9 @@ ENV LC_CTYPE=en_US.UTF-8
 ENV PYTHONIOENCODING=utf-8
 ENV PYTHONUNBUFFERED=true
 
-LABEL org.cassandra.buildenv=ubuntu_2004
+LABEL org.cassandra.buildenv=ubuntu_2204
+
+COPY --from=netty-s390x-builder /opt/netty-s390x /opt/netty-s390x
 
 RUN echo "Building with arguments:" \
     && echo " - DIST_DIR=${DIST_DIR}" \
@@ -42,7 +59,7 @@ RUN echo 'Acquire::ftp::Timeout "60";' >> /etc/apt/apt.conf.d/80proxy.conf
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \
-    apt-get install -y --no-install-recommends software-properties-common apt-utils
+    apt-get install -y --no-install-recommends software-properties-common apt-utils gpg-agent
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
     add-apt-repository -y ppa:deadsnakes/ppa && \
@@ -117,7 +134,9 @@ RUN chmod +x ${BUILD_HOME}/env3.11/bin/activate
 RUN /bin/bash -c "export CASS_DRIVER_NO_CYTHON=1 CASS_DRIVER_NO_EXTENSIONS=1 \
     && source ${BUILD_HOME}/env3.11/bin/activate \
     && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 \
-    && pip3 install -r /opt/requirements.txt \
+    && git clone --quiet --depth 1 --branch cassandra-test https://github.com/datastax/python-driver.git /tmp/cassandra-driver \
+    && (cd /tmp/cassandra-driver && python setup.py develop) \
+    && pip3 install -r <(tail -n +2 /opt/requirements.txt) \
     && pip3 freeze --user"
 
 # Initialize the CCM git repo as well as this also can fail to clone
@@ -153,4 +172,6 @@ RUN chmod -R og+wx ${BUILD_HOME}/.ccm ${BUILD_HOME}/env* ${BUILD_HOME}/.cache
 # the stupid aufs/CoW stuff that the actual docker container mounts will have.
 # we've been seeing 3+ minute hangs when calling sync on an aufs backed mount
 # so it greatly makes tests flaky as things can hang basically anywhere
+RUN sudo update-alternatives --set java /usr/lib/jvm/java-21-openjdk-s390x/bin/java
+RUN sudo update-alternatives --set javac /usr/lib/jvm/java-21-openjdk-s390x/bin/javac
 VOLUME ["/tmp"]

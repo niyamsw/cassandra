@@ -131,6 +131,7 @@ virtualenv --version
 
 # cheap trick to ensure dependency libraries are in place. allows us to stash only project specific build artifacts.
 ant -quiet -silent resolver-dist-lib
+.build/docker/_install_netty_s390x.sh
 
 # Set up venv with dtest dependencies
 set -e # enable immediate exit if venv setup fails

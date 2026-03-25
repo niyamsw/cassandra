@@ -339,6 +339,7 @@ _main() {
   # cheap trick to ensure dependency libraries are in place. allows us to stash only project specific build artifacts.
   #  also recreate some of the non-build files we need
   ant -quiet -silent resolver-dist-lib _createVersionPropFile
+  .build/docker/_install_netty_s390x.sh
 
   case ${target} in
     "stress-test")

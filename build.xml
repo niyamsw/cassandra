@@ -337,7 +337,7 @@
     <resources id="_jvm21_arg_items">
         <string>-Djdk.attach.allowAttachSelf=true</string>
 
-        <string>-XX:+UseZGC</string>
+        <!--  <string>-XX:+UseZGC</string> -->
         <string>-XX:+ZGenerational</string>
 
         <!-- Temporary workaround for jamm having incorrect default CompressedOops for JDK21 -->
