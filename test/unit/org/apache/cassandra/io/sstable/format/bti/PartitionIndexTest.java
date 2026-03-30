@@ -535,7 +535,7 @@ public class PartitionIndexTest
             {
                 future.completeExceptionally(err);
             }
-        }, "testThread", 32 * 1024);
+        }, "testThread", 256 * 1024);
 
         t.start();
         future.join();
