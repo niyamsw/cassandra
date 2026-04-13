@@ -334,11 +334,16 @@
         <equals arg1="${ant.java.version}" arg2="17"/>
     </condition>
 
+    <condition property="jvm21.gc.args" value="-XX:+UseZGC -XX:+ZGenerational" else="">
+        <not>
+            <equals arg1="${os.arch}" arg2="s390x"/>
+        </not>
+    </condition>
+
     <resources id="_jvm21_arg_items">
         <string>-Djdk.attach.allowAttachSelf=true</string>
 
-        <string>-XX:+UseZGC</string>
-        <string>-XX:+ZGenerational</string>
+        <string>${jvm21.gc.args}</string>
 
         <!-- Temporary workaround for jamm having incorrect default CompressedOops for JDK21 -->
         <!-- Without this, memory layout and sizing calculations will be incorrect as jamm assumes compressedOops -->

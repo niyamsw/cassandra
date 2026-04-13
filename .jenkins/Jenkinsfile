@@ -58,7 +58,7 @@
 
 /** CONSTANTS for both the pipeline and scripting **/
 import groovy.transform.Field
-@Field List<String> archsSupported   = ["amd64", "arm64"]
+@Field List<String> archsSupported   = ["amd64", "arm64", "s390x"]
 @Field List<String> pythonsSupported = ["3.8", "3.11"]
 @Field String       pythonDefault    = "3.8"
 /** CONSTANTS end **********************************/
