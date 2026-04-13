@@ -56,11 +56,23 @@ fi
 ################################
 
 if grep "^ID=" /etc/os-release | grep -q 'debian\|ubuntu' ; then
-    sudo update-alternatives --set java /usr/lib/jvm/java-${java_version}-openjdk-$(dpkg --print-architecture)/bin/java
-    sudo update-alternatives --set javac /usr/lib/jvm/java-${java_version}-openjdk-$(dpkg --print-architecture)/bin/javac
+    jdk_arch="$(dpkg --print-architecture)"
+    java_bin="/usr/lib/jvm/java-${java_version}-openjdk-${jdk_arch}/bin/java"
+    javac_bin="/usr/lib/jvm/java-${java_version}-openjdk-${jdk_arch}/bin/javac"
+
+    [ -x "${java_bin}" ] || { echo >&2 "Java executable not found for Java ${java_version}: ${java_bin}"; exit 1; }
+    [ -x "${javac_bin}" ] || { echo >&2 "Javac executable not found for Java ${java_version}: ${javac_bin}"; exit 1; }
+
+    sudo update-alternatives --set java "${java_bin}"
+    sudo update-alternatives --set javac "${javac_bin}"
 else
     sudo alternatives --set java $(alternatives --display java | grep "family java-${java_version}-openjdk" | cut -d' ' -f1)
     sudo alternatives --set javac $(alternatives --display javac | grep "family java-${java_version}-openjdk" | cut -d' ' -f1)
 fi
-export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
-echo "Using Java ${java_version}"
+
+export JAVA_HOME="/usr/lib/jvm/java-${java_version}-openjdk-$(dpkg --print-architecture)"
+[ -d "${JAVA_HOME}" ] || export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
+
+java -version 2>&1
+javac -version 2>&1
+echo "Using Java ${java_version} (JAVA_HOME=${JAVA_HOME})"
